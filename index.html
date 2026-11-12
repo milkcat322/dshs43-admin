@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>dshs43 관리</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="color-scheme" content="dark light">
+<!-- 관리자 사이트. scripts/build-admin.mjs 가 학생 사이트의 테마 · 스타일 · 명단을 함께 묶어 admin-dist/ 로 만듭니다
+     (--cohort 43 이면 admin-dist-43/ 에 43기용으로. 그때 제목 · 앱 이름도 43기 것으로 바뀝니다) -->
+<script src="theme.js"></script>
+<link rel="icon" href="favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="dshs43 관리">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://esm.sh" crossorigin>
+<link rel="modulepreload" href="https://esm.sh/@supabase/supabase-js@2.45.4?bundle">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="student.css">
+<style>
+  /* 관리자 사이트에만 있는 것. 나머지 모양은 학생 사이트의 student.css 를 그대로 씁니다 */
+  .admin-badge { display: inline-block; padding: 4px 12px; border-radius: 999px; background: rgba(255,77,79,0.14); color: #ff6b6d; font-size: 12px; font-weight: 700; }
+  .nav-icons { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }
+  .study-view { display: block; }
+  .gate { box-sizing: border-box; width: 100%; max-width: 380px; margin: 40px auto; padding: 22px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+  .gate h2 { font-size: 18px; margin-bottom: 4px; }
+  .sch-tools { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-bottom: 12px; font-size: 13px; color: var(--text-dim); }
+  .sch-tools label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .sch-month { margin: 20px 2px 8px; font-size: 13px; font-weight: 800; color: var(--text-dim); }
+  .sch-row { display: flex; gap: 12px; align-items: flex-start; width: 100%; padding: 11px 14px; margin-bottom: 6px; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-family: inherit; cursor: pointer; }
+  .sch-row:hover { border-color: var(--accent1); }
+  .sch-row.hidden-ev { opacity: 0.5; }
+  .sch-date { flex: none; width: 92px; font-size: 12.5px; font-weight: 700; color: var(--text-dim); line-height: 1.5; }
+  .sch-main { flex: 1; min-width: 0; }
+  .sch-title { font-size: 14px; font-weight: 700; line-height: 1.45; word-break: break-word; }
+  .sch-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .sch-chips .adm-chip { font-size: 11px; }
+  /* 분석 칸 제안 아래 '계획에 넣기 [진주빈] [반민지]' 한 줄 (넣은 사람은 초록 ✓) */
+  .adm-useplan { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .adm-useplan > span { font-size: 12px; font-weight: 600; color: var(--text-dim); margin-right: 2px; }
+  .adm-useplan .study-btn { margin-top: 0; }   /* 학생 CSS 의 .adm-use-row .study-btn 여백 때문에 버튼만 내려가던 것 */
+  .adm-useplan .study-btn.ok:disabled { opacity: 1; cursor: default; }
+  /* 맨 위 카드 한 줄(처리 · 학생 · 리포트 · 개발 · 학교 일정) → (리포트 · 개발만) 작은 칸 */
+  .study-nav.adm-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .adm-nav button { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; color: var(--text-dim); font: 600 13px 'Noto Sans KR', sans-serif; text-align: left; cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
+  .adm-nav button:hover { border-color: var(--accent1); transform: translateY(-1px); }
+  .adm-nav-top { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .adm-nav i { font-style: normal; font-size: 15px; }
+  .adm-nav b { font-size: 22px; font-weight: 800; line-height: 1.1; color: var(--text); }
+  .adm-nav button.on { border-color: var(--accent1); background: rgba(124,108,240,0.14); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent1); }
+  .adm-nav button.hot b { color: #ff6b6d; }
+  .adm-nav button.hot:not(.on) { border-color: rgba(255,77,79,0.5); }
+  .adm-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; font-size: 13px; color: var(--text-dim); }
+  .adm-bar .study-btn { margin: 0; flex: none; }
+  .adm-empty { padding: 14px; margin-bottom: 6px; text-align: center; font-size: 13px; color: var(--text-dim); background: var(--card); border: 1px dashed var(--border); border-radius: 12px; }
+  #fbSec { scroll-margin-top: 16px; }
+  .adm-sub { display: flex; gap: 6px; margin: -6px 0 14px; padding: 0 2px; }
+  .adm-sub[hidden] { display: none; }
+  .adm-sub button { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; background: none; border: 1px solid var(--border); border-radius: 999px; color: var(--text-dim); font: 600 13px 'Noto Sans KR', sans-serif; cursor: pointer; }
+  .adm-sub button.on { border-color: var(--accent1); color: var(--accent1); background: rgba(124,108,240,0.10); }
+  .adm-sub span { min-width: 18px; padding: 0 5px; border-radius: 9px; background: rgba(136,136,170,0.22); font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+  .adm-sub span.hot { background: #ff4d4f; color: #fff; }
+  .adm-field { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font: inherit; font-size: 14px; }
+  .adm-field:focus { outline: none; border-color: var(--accent1); }
+  @media (max-width: 560px) {
+    .study-nav.adm-nav { gap: 5px; }
+    .adm-nav button { align-items: center; padding: 9px 2px; gap: 3px; font-size: 11px; text-align: center; }
+    .adm-nav-top { flex-direction: column; gap: 1px; }
+    .adm-nav i { font-size: 17px; }
+    .adm-nav b { font-size: 16px; }
+    .adm-bar > span { display: none; }
+    .adm-bar { justify-content: flex-end; }
+  }
+  /* 제안 칸 */
+  .adm-goal { padding: 14px 16px; margin-bottom: 12px; border-radius: 14px; background: rgba(124,108,240,0.10); border: 1px solid rgba(124,108,240,0.35); font-size: 14px; line-height: 1.55; }
+  .adm-goal b { color: var(--accent1); margin-right: 6px; }
+  .adm-goal span { display: block; margin-top: 4px; font-size: 12.5px; color: var(--text-dim); }
+  .adm-spec { margin-top: 8px; }
+  .adm-spec summary { cursor: pointer; font-size: 12.5px; color: var(--text-dim); }
+  .adm-dev-act { display: flex; gap: 8px; margin-top: 12px; }
+  .adm-dev-act .study-btn { margin: 0; }
+  .adm-dev-act .study-btn.primary { flex: 1; padding: 11px; font-weight: 700; }
+  /* 학교 일정 달력 */
+  .acal-view { margin: 0 0 12px; }
+  .acal-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .acal-bar .study-btn { margin: 0; min-width: 36px; }
+  .acal-title { font-size: 17px; font-weight: 800; padding: 0 6px; white-space: nowrap; }
+  .acal-stu { width: auto; min-width: 180px; margin: 0 0 0 auto; padding: 8px 10px; font-size: 13.5px; }
+  .acal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .acal-w { padding: 4px 0; text-align: center; font-size: 12px; font-weight: 700; color: var(--text-dim); }
+  .acal-w.sun, .acal-cell.sun .acal-d { color: #ff6b6d; }
+  .acal-w.sat, .acal-cell.sat .acal-d { color: #5aa9ff; }
+  .acal-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; min-height: 92px; padding: 5px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; overflow: hidden; }
+  .acal-cell:hover { border-color: var(--accent1); }
+  .acal-cell.out { opacity: 0.4; }
+  .acal-cell.today { box-shadow: inset 0 0 0 2px var(--accent1); }
+  .acal-d { font-size: 12px; font-weight: 700; margin-bottom: 1px; }
+  .acal-chip { display: block; padding: 1px 5px; border-radius: 5px; border-left: 3px solid var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); font-size: 11px; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+  .acal-chip:hover { background: color-mix(in srgb, var(--c) 32%, transparent); }
+  .acal-chip.dim { opacity: 0.45; }
+  .acal-chip.busy { cursor: default; }
+  .acal-chip.busy:hover { background: color-mix(in srgb, var(--c) 18%, transparent); }
+  .busy-blur { filter: blur(3.5px); user-select: none; pointer-events: none; }
+  .busy-row { cursor: default; opacity: 0.8; }
+  .adm-label small { margin-left: 6px; font-weight: 500; font-size: 11px; }
+  .adm-uses { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 4px 12px; }
+  .adm-use + .adm-use { border-top: 1px solid var(--border); }
+  .adm-use summary { display: grid; grid-template-columns: 9.5em minmax(0, 1fr) 5.5em; align-items: center; gap: 10px; padding: 9px 0; font-size: 13px; cursor: pointer; list-style: none; }
+  .adm-use summary::-webkit-details-marker { display: none; }
+  .adm-use-l { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .adm-use-bar { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--text-dim) 18%, transparent); overflow: hidden; }
+  .adm-use-bar i { display: block; height: 100%; border-radius: 4px; background: var(--accent1); }
+  .adm-use-n { text-align: right; font-weight: 700; white-space: nowrap; }
+  .adm-use-n small { font-weight: 500; color: var(--text-dim); }
+  .adm-use p { margin: 0 0 10px; font-size: 12px; line-height: 1.6; }
+  .adm-use p.dim { color: var(--text-dim); }
+  @media (max-width: 480px) { .adm-use summary { grid-template-columns: 8em minmax(0, 1fr) 4.8em; gap: 8px; font-size: 12px; } }
+  .acal-more { font-size: 10.5px; color: var(--text-dim); padding-left: 4px; }
+  .acal-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 10px 2px 0; font-size: 12px; color: var(--text-dim); }
+  .acal-legend span::before, .acal-dot { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 50%; background: var(--c); vertical-align: middle; }
+  .acal-dot { flex: none; margin-top: 6px; }
+  .acal-add { display: flex; gap: 8px; margin-top: 12px; }
+  .acal-add .study-submit { flex: 1; margin-top: 0; }
+  .adm-row.click { cursor: pointer; }
+  .adm-row.click:hover b { color: var(--accent1); }
+  @media (max-width: 560px) {
+    .acal { gap: 2px; }
+    .acal-cell { min-height: 64px; padding: 3px 2px; border-radius: 7px; }
+    .acal-chip { padding: 0 3px; font-size: 9.5px; border-left-width: 2px; }
+    .acal-stu { min-width: 0; width: 100%; margin: 4px 0 0; }
+  }
+  .adm-log-row.click { cursor: pointer; }
+  .adm-log-row.click:hover b { color: var(--accent1); }
+  @media (max-width: 640px) {
+    .container { padding-top: env(safe-area-inset-top); }
+    .header { display: block; height: auto; margin: 14px 0 10px; }
+    .header h1 { font-size: 22px; visibility: visible; margin-top: 6px; }   /* 학생 사이트는 폰에서 h1 을 숨기고 움직이는 로고를 씁니다 */
+    .gate { margin: 20px auto; }
+    .sch-date { width: 74px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span class="admin-badge">관리자 전용</span>
+    <h1>dshs43 관리</h1>
+  </div>
+  <div class="nav-icons">
+    <button class="icon-btn" id="btnSettings" type="button" title="설정" aria-label="설정" style="display:none">⚙️</button>
+  </div>
+  <div class="study-nav" id="studyNav"></div>
+  <div class="study-view" id="studyView"><div class="study-empty">불러오는 중…</div></div>
+  <p class="site-note">대전과학고등학교 및 dshs.app에서 공식적으로 제공하거나 운영하는 사이트가 아닌 학생 비공식 사이트의 관리자 화면입니다.</p>
+</div>
+<div class="study-modal" id="studyModal"></div>
+<div class="study-toast" id="studyToast"></div>
+<script src="school-data.js"></script>
+<script src="config.js"></script>
+<!-- 기수 설정 (42기 · 43기). scripts/build-admin.mjs 가 만듭니다 -->
+<script src="cohort.js"></script>
+<script type="module" src="admin.js"></script>
+<script>
+  // 알림을 받으려면 서비스 워커가 있어야 합니다 (이 사이트 전용 sw.js)
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

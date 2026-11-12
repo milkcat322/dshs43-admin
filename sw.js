@@ -1,7 +1,7 @@
 // dshs43 관리 — 서비스 워커 (관리자 사이트 전용)
 // 관리자 화면은 늘 최신 내용이 중요해서 네트워크 우선으로 받고, 인터넷이 없을 때만 받아 둔 파일을 씁니다.
 // BUILD 는 scripts/build-admin.mjs 가 묶을 때마다 바꿔서, 새 배포가 올라가면 기기에 바로 깔립니다.
-const BUILD = '2026-11-12T10:56:11.340Z';
+const BUILD = '2026-11-12T11:21:57.739Z';
 const CACHE = `dshs43-admin-${BUILD}`;
 
 self.addEventListener('install', () => self.skipWaiting());

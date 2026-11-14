@@ -296,7 +296,7 @@ function renderLogin() {
     $("doLogin").disabled = false;
     if (error) return showErr(isNetErr(error) ? "서버에 연결하지 못했어요." : "비밀번호가 맞지 않아요.");
     await loadProfile();
-    if (!me) { await sb.auth.signOut(); return showErr("계정 정보(프로필)를 찾지 못했어요."); }
+    if (!me) { await sb.auth.signOut({ scope: "local" }); return showErr("계정 정보(프로필)를 찾지 못했어요."); }
     if (me.is_admin) toast("이 기기를 등록했어요");
     start();
   };
@@ -320,7 +320,7 @@ async function logout() {
   closeModal();
   await forgetPush();   // 이 기기로 관리자 알림이 계속 오지 않게, 서버 등록만 지웁니다
   autoPush.done = false;
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: "local" });
   me = null;
   toast("이 기기 등록을 해제했어요");
   start();

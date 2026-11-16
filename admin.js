@@ -1105,6 +1105,54 @@ async function reviewTodoShare(id, ok) {
   await refresh();
 }
 
+// ---------- 43기 시간표 선생님 고르기 권한 (ttpicks43.sql 의 cohort43_tt_editors) ----------
+// 선생님이 여러 명인 과목은 여기서 권한을 받은 학생만 43기 사이트 시간표에서 자기 반 수업 선생님을 고릅니다.
+async function paintTtEditors() {
+  const box = $("ttEdBox");
+  if (!box) return;
+  const { data, error } = await sb.from("cohort43_tt_editors").select("student_id, granted_at").order("student_id");
+  if (!$("ttEdBox")) return;
+  if (error) {
+    box.innerHTML = '<div class="adm-label">시간표 선생님 고르기 권한</div><div class="adm-none">불러오지 못했어요. ttpicks43.sql 을 실행했는지 확인해 주세요.</div>';
+    return;
+  }
+  const ban = (sid) => (sid / 100 | 0) % 10;
+  box.innerHTML = `<div class="adm-label">시간표 선생님 고르기 권한 <small>${data.length}명</small></div>
+    ${data.length ? data.map((r) => `<div class="adm-row">
+      <div class="adm-row-top"><b>${esc(sidName(r.student_id))} (${r.student_id}) · ${ban(r.student_id)}반</b>
+        <button class="study-btn small no" data-ttedoff="${r.student_id}">권한 빼기</button></div>
+    </div>`).join("") : '<div class="adm-none">아직 권한을 받은 학생이 없어요.</div>'}
+    <div class="study-row" style="margin-top:8px">
+      <input class="study-input" id="ttEdIn" placeholder="학번 또는 이름" style="flex:1;min-width:0">
+      <button class="study-btn primary small" id="ttEdAdd">권한 주기</button>
+    </div>
+    <div class="adm-foot">권한을 받은 학생만 43기 시간표에서 선생님이 여러 분인 과목의 선생님을 고를 수 있어요 (자기 반만, 반 친구들 시간표에도 적용). 학년이 바뀌어 학번이 바뀌면 다시 줘야 해요.</div>`;
+  box.querySelectorAll("[data-ttedoff]").forEach((b) => b.onclick = async () => {
+    b.disabled = true;
+    const { error } = await sb.from("cohort43_tt_editors").delete().eq("student_id", +b.dataset.ttedoff);
+    if (error) { b.disabled = false; return toast("권한을 빼지 못했어요", true); }
+    toast(`${sidName(+b.dataset.ttedoff)} 학생의 권한을 뺐어요`);
+    paintTtEditors();
+  });
+  const add = async () => {
+    const q = $("ttEdIn").value.trim();
+    if (!q) return;
+    let sid = /^d{4}$/.test(q) ? +q : null;
+    if (!sid) {
+      const hits = roster().filter((p) => p.name === q);
+      if (hits.length !== 1) return toast(hits.length ? "같은 이름이 여럿이에요. 학번으로 넣어 주세요" : "그 이름의 학생이 없어요", true);
+      sid = hits[0].sid;
+    }
+    if (sid < 1000 || sid > 1999) return toast("43기 학번(1000~1999)이 아니에요", true);
+    const { error } = await sb.from("cohort43_tt_editors").upsert({ student_id: sid }, { onConflict: "student_id", ignoreDuplicates: true });
+    if (error) return toast("권한을 주지 못했어요", true);
+    toast(`${sidName(sid)} 학생에게 권한을 줬어요`);
+    paintTtEditors();
+  };
+  $("ttEdAdd").onclick = add;
+  $("ttEdIn").onkeydown = (e) => { if (e.key === "Enter") add(); };
+}
+
 function manageHtml(pending, fb, fbSeen, overview, ovSeenAt, pane, visits, log, usage, tasks, plans, news, funnel, tshares) {
   const rows = fb.rows || [];
   // 새로 온 피드백 + 지난 피드백에 학생이 새로 단 답글
@@ -1129,7 +1177,8 @@ function manageHtml(pending, fb, fbSeen, overview, ovSeenAt, pane, visits, log, 
         : fresh.length ? fbHtml(fresh, true) : '<div class="adm-empty">새 피드백이 없어요.</div>')
       + reviewLogHtml(log)
       + (old.length ? `<details class="adm-acc"><summary>지난 피드백<span>${old.length}</span></summary>${fbHtml(old, false)}</details>` : ""))}
-    ${box("stu", visitsHtml(visits) + loginFunnelHtml(funnel) + '<div class="adm-label">학생 현황</div>' + (overview ? studentsHtml(overview, ovSeenAt) : '<div class="adm-none">학생 현황을 불러오지 못했어요.</div>'))}
+    ${box("stu", visitsHtml(visits) + loginFunnelHtml(funnel) + '<div class="adm-label">학생 현황</div>' + (overview ? studentsHtml(overview, ovSeenAt) : '<div class="adm-none">학생 현황을 불러오지 못했어요.</div>')
+      + (COHORT.id === 43 ? '<div id="ttEdBox"></div>' : ""))}
     ${box("dev", devNewsHtml(news) + devHtml(tasks, usage, plans, overview))}`;
 }
 
@@ -1211,6 +1260,7 @@ function paintOverview(res) {
   bindMerge(body);
   body.querySelectorAll("[data-fbdel]").forEach((x) => x.onclick = () => deleteFeedback(fb.rows.find((r) => r.id === x.dataset.fbdel)));
   bindReplies(body);
+  if ($("ttEdBox")) paintTtEditors();
   bindPlans(body, plans.data || [], bindDev(body, tasks.data || [], showPane));
   // 본 데까지: 가장 최근 피드백과 학생 답글 중 늦은 쪽
   const fbLatest = [fb.rows?.[0]?.created_at, ...(fb.replies || []).filter(fbByStudent).map((r) => r.created_at)]

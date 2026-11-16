@@ -32,6 +32,10 @@
   body.offline .study-nav, body.offline .study-view, body.offline #btnSettings { display: none !important; }
   body.offline.study-open .search-section { display: block; }
   body.offline .offline-note { display: block; }
+  /* 인터넷이 없어도 단어장(vocab.html, 서비스 워커에 받아 둠)은 열 수 있습니다 — dshs-study.js 의 openOfflineLearn */
+  body.offline.offline-learn .study-view { display: block !important; }
+  body.offline.offline-learn .search-section, body.offline.offline-learn #result, body.offline.offline-learn #welcomeState { display: none !important; }
+  .offline-note .offline-learn-btn { margin-left: 6px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
   /* 비로그인: 흐린 시간표(gateBg, 아래 paintGateBg 가 채움) 위에 시작하기 카드 */
   .login-gate { position: relative; overflow: hidden; border-radius: 20px; min-height: 460px; text-align: center; color: var(--text-muted); }
   .gate-bg { position: absolute; inset: 0; padding: 10px; filter: blur(5px); opacity: 0.55; transform: scale(1.05); pointer-events: none; user-select: none; -webkit-user-select: none; }

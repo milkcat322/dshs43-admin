@@ -2008,8 +2008,12 @@ async function enablePush(quiet = false) {
     if (!sub) sub = await subscribe(reg);
   }
   const j = sub.toJSON();
-  // 같은 기기가 다른 계정으로 남아 있어도 지금 계정으로 넘겨받습니다 (schema.sql 의 save_push)
-  const { error } = await sb.rpc("save_push", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth });
+  // 같은 기기가 다른 계정으로 남아 있어도 지금 계정으로 넘겨받습니다 (schema.sql 의 save_push).
+  // 이 기기가 어느 기수 관리자 사이트인지(p_cohort)도 남겨, 그 기수 학생의 새 활동만 받습니다 (send-reminders).
+  // 사이트를 열 때마다(autoPush) 다시 저장하므로 예전에 켠 기기도 열면 기수가 채워집니다.
+  const args = { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth };
+  let { error } = await sb.rpc("save_push", { ...args, p_cohort: COHORT.id });
+  if (error) ({ error } = await sb.rpc("save_push", args));   // schema.sql 을 아직 실행하지 않은 DB
   if (error) return say("알림 등록에 실패했어요", true);
   pushOn = true;
   paintPush();

@@ -1881,6 +1881,8 @@ function openSettings() {
     <div class="set-row" style="display:block"><b>화면 테마</b>
       <div class="theme-grid">${THEMES.map(([k, label, bg, ac]) =>
         `<button type="button" data-theme-pick="${k}"${curTheme() === k ? ' class="on"' : ""}><i style="background:linear-gradient(135deg, ${bg} 50%, ${ac} 50%)"></i>${label}</button>`).join("")}</div></div>
+    ${COHORT.plusSwitch ? `<div class="set-row"><span><b>기수</b><span class="ev-hint">42기 · 43기 관리 화면을 바꿔요. 기기 등록은 기수마다 따로예요</span></span>
+      <span style="display:flex;gap:6px;flex:none">${[42, 43].map((c) => `<a class="study-btn small${c === COHORT.id ? " primary" : ""}" href="../${c}/" style="text-decoration:none">${c}기</a>`).join("")}</span></div>` : ""}
     <a class="study-btn wide" href="${esc(STUDENT_URL)}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none">학생 사이트 열기</a>
     <div class="study-foot">이 기기는 관리자 기기로 등록돼 있어요 (${esc(me.username)}).<br>
       <button class="auth-admin" id="doLogout" type="button">이 기기 등록 해제</button> · 기기를 잃어버렸거나 다른 사람에게 줄 때만 눌러요</div>`);

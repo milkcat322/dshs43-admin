@@ -555,6 +555,12 @@ const USE_FEATURES = [
   ["personal", "수행평가 개인 수정"], ["location", "내 위치 남김"], ["push", "알림 켠 기기 있음"], ["groups", "그룹 만듦"], ["feedback", "피드백 보냄"],
   ["comments", "수행평가 댓글 씀"], ["bookmarks", "공부 탭 단어 북마크"],
 ];
+// 서버에 자료가 남지 않는 화면 기능 (학생 사이트 logFeature 의 이름). 시간표 탭은 tt_ 로 시작
+const SCREEN_FEATURES = [
+  ["exam", "기말고사 탭"], ["meal", "급식 탭"], ["learn", "공부 탭"], ["notice", "수행평가 탭"], ["todo", "할 일 탭"],
+  ["tt_gpa", "시간표 · 학점 계산"], ["tt_classes", "시간표 · 분반 목록"], ["tt_overlap", "시간표 · 겹치는 수업"],
+  ["tt_compare", "시간표 · 비교"], ["tt_wallpaper", "시간표 · 배경화면"],
+];
 const usedFeature = (s, k) => k === "location" ? !!s.location : s[k] > 0;
 function usageStatsHtml(data) {
   const all = data.students.filter((s) => s.student_id);
@@ -590,8 +596,21 @@ function usageStatsHtml(data) {
     .map(([label, f]) => bar(label, all.filter(f), null, "해당 학생")).join("");
   const weekAgo = Date.now() - 7 * 86400000;
   const fresh = all.filter((s) => Date.parse(s.joined_at) > weekAgo).length;
+  // 화면 기능 사용 (features.sql): 서버에 자료가 남지 않는 탭 · 기능을 연 학생 수. 잘 안 쓰는 기능을 정리하는 근거
+  const fuMap = new Map((fu?.features || []).map((f) => [f.feature, f]));
+  // 43기 사이트는 아직 기록을 남기지 않아 42기 관리자 사이트에서만 보여 줍니다
+  const fu = COHORT.id === 42 ? data.feature_uses : null;
+  const screens = fu ? SCREEN_FEATURES.map(([k, label]) => {
+    const f = fuMap.get(k);
+    const yes = (f?.users || []).filter((u) => sidInCohort(u.student_id));
+    const ids = new Set(yes.map((u) => u.student_id));
+    const extra = f ? ` <small class="dim">기기 ${f.devices} · 최근 7일 ${f.devices_7d}</small>` : "";
+    return bar(label + extra, yes, all.filter((s) => !ids.has(s.student_id)));
+  }).join("") : "";
   return `<div class="adm-label">이용 통계 <small>가입한 ${n}명 기준 · 누르면 이름</small></div>
     <div class="adm-uses">${features}</div>
+    ${fu ? `<div class="adm-label">화면 기능 사용 <small>열어 본 학생 · ${fu.since ? `${esc(fu.since.slice(5).replace("-", "/"))}부터` : "2026-11-16부터 기록"}</small></div>
+    <div class="adm-uses">${screens}</div>` : ""}
     <div class="adm-label">개인 일정 <small>직접 만듦 · 친구가 넣어 줌</small></div>
     <div class="adm-uses">${evRows}</div>
     <div class="adm-label">쓴 기능 수 <small>일정 · 할 일 · 완료 표시 · 수행평가 올림 · 개인 수정 · 위치 · 그룹 · 댓글 · 북마크 중</small></div>
@@ -1207,10 +1226,12 @@ async function renderOverview(cached = false) {
     sb.from("admin_plans").select("*").order("created_at", { ascending: true }),
     sb.from("dev_news").select("*").order("updated_at", { ascending: false }).limit(15),
     cohortRpc("admin_login_funnel", { p_days: 14 }),
-    sb.rpc("admin_todo_shares")]), loadPending()]);   // 할 일 공유 승인 대기 (todoshare.sql)
+    sb.rpc("admin_todo_shares"),
+    cohortRpc("admin_feature_uses", {})]), loadPending()]);   // 화면 기능 사용 (features.sql) · 할 일 공유 승인 대기 (todoshare.sql)
   // 학생 현황 · 오늘 로그인한 학생은 이 기수 학생만. 방문 기기 수 · 로그인 이탈은 서버가 기수(p_cohort)로 나눠 줍니다
   if (res[0]?.data) res[0] = { ...res[0], data: cohortOverview(res[0].data) };
   if (res[2]?.data?.today_users) res[2] = { ...res[2], data: { ...res[2].data, today_users: res[2].data.today_users.filter((u) => sidInCohort(u.student_id)) } };
+  if (res[0]?.data && res[10]?.data) res[0] = { ...res[0], data: { ...res[0].data, feature_uses: res[10].data } };
   setDbRoster(res[0]?.data);
   const sig = JSON.stringify([res, cache.pending]);
   if (cached && ovLast && sig === ovLast.sig) return;   // 먼저 그린 것과 같으면 그대로

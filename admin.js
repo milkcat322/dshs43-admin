@@ -597,9 +597,9 @@ function usageStatsHtml(data) {
   const weekAgo = Date.now() - 7 * 86400000;
   const fresh = all.filter((s) => Date.parse(s.joined_at) > weekAgo).length;
   // 화면 기능 사용 (features.sql): 서버에 자료가 남지 않는 탭 · 기능을 연 학생 수. 잘 안 쓰는 기능을 정리하는 근거
-  const fuMap = new Map((fu?.features || []).map((f) => [f.feature, f]));
   // 43기 사이트는 아직 기록을 남기지 않아 42기 관리자 사이트에서만 보여 줍니다
   const fu = COHORT.id === 42 ? data.feature_uses : null;
+  const fuMap = new Map((fu?.features || []).map((f) => [f.feature, f]));
   const screens = fu ? SCREEN_FEATURES.map(([k, label]) => {
     const f = fuMap.get(k);
     const yes = (f?.users || []).filter((u) => sidInCohort(u.student_id));

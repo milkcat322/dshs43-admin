@@ -561,6 +561,47 @@ const SCREEN_FEATURES = [
   ["tt_gpa", "시간표 · 학점 계산"], ["tt_classes", "시간표 · 분반 목록"], ["tt_overlap", "시간표 · 겹치는 수업"],
   ["tt_compare", "시간표 · 비교"], ["tt_wallpaper", "시간표 · 배경화면"],
 ];
+// 공부 페이지 (learnuse.sql 의 admin_learn_uses): 파트별 본 사람 수 · 본 시간 · 안쪽 화면 · 시간대. 학생별 시간은 서버가 보내지 않습니다.
+// 파트 id 는 학생 사이트 LEARN_SUBJECTS 와 같게. 새 파트 · 탭 · 기작이 생기면 여기에 이름을 더합니다 (없으면 id 그대로 보임).
+const LEARN_PARTS = { atc: "영어 · 학술영어 세미나", crit: "영어 · 비판적 영어 읽기와 토론", bio: "일반생물학 · 손희창T", calc: "미적분학Ⅱ · 문세현T", calc2: "미적분학Ⅱ · 전경아T" };
+const LEARN_SECTIONS = {
+  home: "첫 화면", study: "학습", quiz: "퀴즈", defmemo: "영영풀이", essay: "서술", grammar: "문법", blank: "빈칸", scramble: "배열", memo: "셀프", test: "테스트", bookmark: "북마크",
+  prokinit: "원핵 전사 개시", eukinit: "진핵 전사 개시", elong: "전사 신장", rhodep: "ρ 의존 종결", rhoindep: "ρ 비의존 종결", eukterm: "진핵 전사 종결",
+  captail: "캡 · 꼬리", splice: "스플라이싱", alt: "선택적 스플라이싱", tlinitp: "원핵 번역 개시", tlinite: "진핵 번역 개시", tlelong: "번역 신장", tlterm: "번역 종결",
+  srp: "SRP", mut: "돌연변이", crispr: "CRISPR",
+};
+const learnDur = (sec) => { sec = Math.round(sec || 0); const m = Math.round(sec / 60); return sec < 60 ? `${sec}초` : m < 60 ? `${m}분` : `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ""}`; };
+function learnUsesHtml(lu) {
+  if (!lu) return "";
+  const label = `<div class="adm-label">공부 페이지 <small>본 사람 · 본 시간 · 최근 ${lu.days}일${lu.since ? ` · ${esc(lu.since.slice(5).replace("-", "/"))}부터 기록` : ""}</small></div>`;
+  const parts = lu.parts || [];
+  if (!parts.length) return `${label}<div class="adm-none">아직 기록이 없어요. (2026-11-23부터 기록)</div>`;
+  const max = Math.max(1, ...parts.map((p) => p.secs));
+  const share = (obj, names) => {
+    const tot = Object.values(obj || {}).reduce((a, b) => a + b, 0) || 1;
+    return names.map(([k, n]) => [n, Math.round((obj?.[k] || 0) / tot * 100)]).filter(([, v]) => v > 0).map(([n, v]) => `${n} ${v}%`).join(" · ");
+  };
+  const rows = parts.map((p) => {
+    const secName = (k) => LEARN_SECTIONS[k] || (/^[ab]\d$/.test(k) ? k.toUpperCase() : k);
+    const secs = Object.entries(p.sections || {}).sort((a, b) => b[1].secs - a[1].secs)
+      .map(([k, v]) => `${esc(secName(k))} ${learnDur(v.secs)} <small class="dim">${v.people}명</small>`).join(" · ");
+    // 시간대: 새벽 0~6 · 오전 6~12 · 오후 12~18 · 저녁 18~22 · 밤 22~24
+    const band = { a: 0, b: 0, c: 0, d: 0, e: 0 };
+    Object.entries(p.hours || {}).forEach(([h, v]) => { h = +h; band[h < 6 ? "a" : h < 12 ? "b" : h < 18 ? "c" : h < 22 ? "d" : "e"] += v; });
+    const who = (lu.users?.[p.part] || []).filter((u) => sidInCohort(u.student_id));
+    const guests = p.people - p.users;
+    return `<details class="adm-use">
+      <summary><span class="adm-use-l">${esc(LEARN_PARTS[p.part] || p.part)}</span><span class="adm-use-bar"><i style="width:${Math.round(p.secs / max * 100)}%"></i></span><span class="adm-use-n">${p.people}명 <small>${learnDur(p.secs)}</small></span></summary>
+      <p><b>한 사람이 본 시간</b> 평균 ${learnDur(p.avg_secs)} · 중앙값 ${learnDur(p.median_secs)} · 이틀 넘게 본 사람 ${p.back}명 · 연 횟수 ${p.opens}</p>
+      <p><b>어디를</b> ${secs || "기록 없음"}</p>
+      <p><b>언제</b> ${share(band, [["a", "새벽(0~6시)"], ["b", "오전"], ["c", "오후"], ["d", "저녁(18~22시)"], ["e", "밤(22시~)"]]) || "기록 없음"}</p>
+      <p><b>어떻게</b> ${share(p.kinds, [["phone", "폰"], ["tablet", "태블릿"], ["pc", "노트북·PC"]])} · 새 창으로 본 시간 ${Math.round((p.secs_win || 0) / Math.max(1, p.secs) * 100)}%</p>
+      <p class="dim"><b>본 학생 ${who.length}</b> ${who.length ? who.map(ovWho).join(" · ") : "없음"}${guests > 0 ? ` · 로그인 기록 없이 본 기기 ${guests}` : ""}</p>
+    </details>`;
+  }).join("");
+  return `${label}<div class="adm-uses">${rows}</div>
+    <div class="adm-foot">화면이 보이고 2분 안에 조작이 있던 시간만 세요. 한 학생이 폰과 노트북으로 보면 로그인돼 있을 때 한 사람으로 세요. 학생별 본 시간은 보여 주지 않아요.</div>`;
+}
 const usedFeature = (s, k) => k === "location" ? !!s.location : s[k] > 0;
 function usageStatsHtml(data) {
   const all = data.students.filter((s) => s.student_id);
@@ -611,6 +652,7 @@ function usageStatsHtml(data) {
     <div class="adm-uses">${features}</div>
     ${fu ? `<div class="adm-label">화면 기능 사용 <small>열어 본 학생 · ${fu.since ? `${esc(fu.since.slice(5).replace("-", "/"))}부터` : "2026-11-16부터 기록"}</small></div>
     <div class="adm-uses">${screens}</div>` : ""}
+    ${COHORT.id === 42 ? learnUsesHtml(data.learn_uses) : ""}
     <div class="adm-label">개인 일정 <small>직접 만듦 · 친구가 넣어 줌</small></div>
     <div class="adm-uses">${evRows}</div>
     <div class="adm-label">쓴 기능 수 <small>일정 · 할 일 · 완료 표시 · 수행평가 올림 · 개인 수정 · 위치 · 그룹 · 댓글 · 북마크 중</small></div>
@@ -1227,11 +1269,13 @@ async function renderOverview(cached = false) {
     sb.from("dev_news").select("*").order("updated_at", { ascending: false }).limit(15),
     cohortRpc("admin_login_funnel", { p_days: 14 }),
     sb.rpc("admin_todo_shares"),
-    cohortRpc("admin_feature_uses", {})]), loadPending()]);   // 화면 기능 사용 (features.sql) · 할 일 공유 승인 대기 (todoshare.sql)
+    cohortRpc("admin_feature_uses", {}),
+    cohortRpc("admin_learn_uses", { p_days: 30 })]), loadPending()]);   // 화면 기능 사용 (features.sql) · 할 일 공유 승인 대기 (todoshare.sql)
   // 학생 현황 · 오늘 로그인한 학생은 이 기수 학생만. 방문 기기 수 · 로그인 이탈은 서버가 기수(p_cohort)로 나눠 줍니다
   if (res[0]?.data) res[0] = { ...res[0], data: cohortOverview(res[0].data) };
   if (res[2]?.data?.today_users) res[2] = { ...res[2], data: { ...res[2].data, today_users: res[2].data.today_users.filter((u) => sidInCohort(u.student_id)) } };
   if (res[0]?.data && res[10]?.data) res[0] = { ...res[0], data: { ...res[0].data, feature_uses: res[10].data } };
+  if (res[0]?.data && res[11]?.data) res[0] = { ...res[0], data: { ...res[0].data, learn_uses: res[11].data } };   // 공부 페이지 (learnuse.sql)
   setDbRoster(res[0]?.data);
   const sig = JSON.stringify([res, cache.pending]);
   if (cached && ovLast && sig === ovLast.sig) return;   // 먼저 그린 것과 같으면 그대로

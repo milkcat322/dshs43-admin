@@ -563,12 +563,13 @@ const SCREEN_FEATURES = [
 ];
 // 공부 페이지 (learnuse.sql 의 admin_learn_uses): 파트별 본 사람 수 · 본 시간 · 안쪽 화면 · 시간대. 학생별 시간은 서버가 보내지 않습니다.
 // 파트 id 는 학생 사이트 LEARN_SUBJECTS 와 같게. 새 파트 · 탭 · 기작이 생기면 여기에 이름을 더합니다 (없으면 id 그대로 보임).
-const LEARN_PARTS = { atc: "영어 · 학술영어 세미나", crit: "영어 · 비판적 영어 읽기와 토론", bio: "일반생물학 · 손희창T", calc: "미적분학Ⅱ · 문세현T", calc2: "미적분학Ⅱ · 전경아T" };
+const LEARN_PARTS = { atc: "영어 · 학술영어 세미나", crit: "영어 · 비판적 영어 읽기와 토론", bio: "일반생물학 · 손희창T", calc: "미적분학Ⅱ · 문세현T", calc2: "미적분학Ⅱ · 전경아T", phys: "일반물리학Ⅱ · 권진영T", phys2: "일반물리학Ⅱ · 윤석민T" };
 const LEARN_SECTIONS = {
   home: "첫 화면", study: "학습", quiz: "퀴즈", defmemo: "영영풀이", essay: "서술", grammar: "문법", blank: "빈칸", scramble: "배열", memo: "셀프", test: "테스트", bookmark: "북마크",
   prokinit: "원핵 전사 개시", eukinit: "진핵 전사 개시", elong: "전사 신장", rhodep: "ρ 의존 종결", rhoindep: "ρ 비의존 종결", eukterm: "진핵 전사 종결",
   captail: "캡 · 꼬리", splice: "스플라이싱", alt: "선택적 스플라이싱", tlinitp: "원핵 번역 개시", tlinite: "진핵 번역 개시", tlelong: "번역 신장", tlterm: "번역 종결",
   srp: "SRP", mut: "돌연변이", crispr: "CRISPR",
+  k29: "맥스웰 · 전자기파", kbb: "흑체복사", kpe: "광전효과", kcp: "콤프턴", kbo: "보어 · 물질파", y30: "기하광학", y32a: "파동의 합성", y32b: "진동방향과 간섭", y32c: "회절격자",
 };
 const learnDur = (sec) => { sec = Math.round(sec || 0); const m = Math.round(sec / 60); return sec < 60 ? `${sec}초` : m < 60 ? `${m}분` : `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ""}`; };
 function learnUsesHtml(lu) {

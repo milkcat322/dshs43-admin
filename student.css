@@ -111,6 +111,7 @@
   .class-cell:hover { transform: scale(1.05); }
   .common-cell { background: rgba(136,136,170,0.12); color: var(--text-dim); border: 1px dashed var(--border); cursor: default; }
   .common-cell:hover { transform: none; }
+  .club-cell { background: rgba(167,139,250,0.14); color: var(--text); border: 1px dashed rgba(167,139,250,0.55); cursor: pointer; }
   .class-cell .subj-name { font-size: 10.5px; font-weight: 700; }
   .class-cell .ban-name { font-size: 9px; opacity: 0.8; font-family: 'IBM Plex Mono', monospace; margin-top: 1px; }
   .color-0 { background: rgba(124,111,224,0.25); color: #a78bfa; border: 1px solid rgba(124,111,224,0.3); }

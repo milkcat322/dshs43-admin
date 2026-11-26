@@ -570,7 +570,7 @@ const LEARN_SECTIONS = {
   captail: "캡 · 꼬리", splice: "스플라이싱", alt: "선택적 스플라이싱", tlinitp: "원핵 번역 개시", tlinite: "진핵 번역 개시", tlelong: "번역 신장", tlterm: "번역 종결",
   srp: "SRP", mut: "돌연변이", crispr: "CRISPR",
   trp: "trp 오페론", lacneg: "lac 음성 조절", lacpos: "lac 양성 조절", stages: "진핵 조절 단계", chromatin: "염색질 구조", enhancer: "인핸서 · 전사 개시", combo: "조합 조절",
-  mirna: "miRNA · siRNA", protdeg: "단백질 분해", determ: "결정 · 분화", myod: "MyoD", bicoid: "bicoid 축 형성", ch21: "Ch21 진화", ch22: "Ch22 계통발생", ch23: "Ch23 개체군의 진화",
+  mirna: "miRNA · siRNA", protdeg: "단백질 분해", determ: "결정 · 분화", myod: "MyoD", bicoid: "bicoid 축 형성", ch21: "Ch21 진화", ch22: "Ch22 계통발생", ch23: "Ch23 개체군의 진화", chmm: "마인드맵",
   k29: "맥스웰 · 전자기파", kbb: "흑체복사", kpe: "광전효과", kcp: "콤프턴", kbo: "보어 · 물질파", y30: "기하광학", y32a: "파동의 합성", y32b: "진동방향과 간섭", y32c: "회절격자",
   heap: "힙", uf: "Union-Find", tree: "트리", mst: "MST", topo: "위상정렬", sp: "최단거리", sum: "한눈에",
   "heap-max": "최대 힙", "union-find": "Union-Find", "tree-level": "레벨별 출력", "tree-order": "트리 순회", "mst-prim": "프림", "mst-kruskal": "크루스칼",

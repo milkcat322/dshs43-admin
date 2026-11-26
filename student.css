@@ -32,7 +32,7 @@
   body.offline .study-nav, body.offline .study-view, body.offline #btnSettings, body.offline #fbBtn, body.need-login #fbBtn { display: none !important; }
   body.offline.study-open .search-section { display: block; }
   body.offline .offline-note { display: block; }
-  /* 인터넷이 없어도 단어장(vocab.html, 서비스 워커에 받아 둠)은 열 수 있습니다 — dshs-study.js 의 openOfflineLearn */
+  /* 인터넷이 없어도 공부 탭(서비스 워커에 받아 둔 bio · algograph 등)은 열 수 있습니다 — dshs-study.js 의 openOfflineLearn */
   body.offline.offline-learn .study-view { display: block !important; }
   body.offline.offline-learn .search-section, body.offline.offline-learn #result, body.offline.offline-learn #welcomeState { display: none !important; }
   .offline-note .offline-learn-btn { margin-left: 6px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }

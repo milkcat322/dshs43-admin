@@ -671,7 +671,7 @@ function usageStatsHtml(data) {
     <div class="adm-tiles">${classes}</div>`;
 }
 
-// 학생 칸은 있는 그대로만 보여 줍니다. 숫자를 보고 할 일(overviewTips)은 '제안' 칸에 있어요.
+// 학생 칸은 있는 그대로만 보여 줍니다. (overviewTips 는 2026-11-27 에 제안 칸에서 뺐고 지금은 쓰지 않아요)
 function studentsHtml(data, seen) {
   const first = seen === Infinity;   // 처음 열면 강조하지 않습니다
   const nNew = first ? 0 : data.activity.filter((a) => Date.parse(a.at) > seen).length;
@@ -857,6 +857,8 @@ const DEV_LABEL = {
   accepted: "합치는 중", merged: "beta 반영", rejected: "버림", failed: "실패", needs_human: "사람 손 필요",
 };
 const DEV_HOT = new Set(["draft", "review", "failed", "needs_human"]);   // 관리자가 볼 차례
+// 밤 10시 사용 분석이 올린 기능 제안 초안(source.report)은 2026-11-27 부터 화면에 보이지 않습니다 (직접 맡기기 · 계획에서 만든 초안만)
+const devShown = (t) => !(t.status === "draft" && t.source?.report);
 const DEV_MAX = 3;
 // 계획: 관리자마다 칸이 있고, 끝낸 항목은 아래로 내립니다 (plans.sql). 🛠 를 누르면 그 계획을 제작 초안으로 만들어요.
 const PLAN_OWNERS = ["반민지", "진주빈"];
@@ -935,6 +937,7 @@ function bindPlans(body, plans, addTask) {
 }
 
 function devHtml(tasks, usage, plans, overview) {
+  tasks = tasks && tasks.filter(devShown);
   if (!tasks) return '<div class="adm-none">제작 목록을 불러오지 못했어요. agenttasks.sql 을 실행했는지 확인해 주세요.</div>';
   const chip = (t) => `<span class="${DEV_HOT.has(t.status) ? "fb-new" : "adm-chip"}">${DEV_LABEL[t.status]}</span>`;
   const head = (t) => `<div class="adm-fb-top">${chip(t)}<b>${esc(t.title)}</b>${t.rounds ? `<span class="adm-chip">${t.rounds}/${DEV_MAX}번째</span>` : ""}</div>`;
@@ -974,13 +977,7 @@ function devHtml(tasks, usage, plans, overview) {
   const over = (t) => ["merged", "rejected"].includes(t.status);
   const live = tasks.filter((t) => !over(t)), done = tasks.filter(over);
   const drafts = live.filter((t) => t.status === "draft"), going = live.filter((t) => t.status !== "draft");
-  const last = usage?.[0];
-  return `<div class="adm-goal"><b>목표</b> 로그인해서 쓰는 학생 늘리기 · 수행평가 · 일정 기능을 쓰는 학생 늘리기
-      <span>매일 밤 10시 Claude 가 사용 기록을 보고 이 목표에 맞는 개발을 제안해요. 고치거나 그대로 '승인하고 만들기'를 누르면 Claude 가 만들고 미리보기를 보내요.</span></div>
-    ${overview ? overviewTips(overview).map((t) => `<div class="adm-tip">${esc(t)}</div>`).join("") : ""}
-    ${last ? `<details class="adm-acc"><summary>최근 분석 · ${esc(ovTime(last.created_at))}</summary><div class="adm-use-text" style="padding:4px 14px 14px">${esc(last.report?.summary || "")}</div></details>` : ""}
-    <div class="adm-label">새 제안${drafts.length ? ` ${drafts.length}` : ""}</div>
-    ${drafts.map(card).join("") || '<div class="adm-empty">새 제안이 없어요. 밤 10시 분석 뒤에 올라와요.</div>'}
+  return `${drafts.length ? `<div class="adm-label">맡길 일 ${drafts.length}</div>${drafts.map(card).join("")}` : ""}
     ${going.length ? `<div class="adm-label">진행 중 ${going.length}</div>${going.map(card).join("")}` : ""}
     <div class="adm-label">계획</div>
     ${plansHtml(plans, tasks)}
@@ -1230,7 +1227,7 @@ function manageHtml(pending, fb, fbSeen, overview, ovSeenAt, pane, visits, log, 
   const old = rows.filter((f) => !isFresh(f));
   const fbHtml = (list, isNew) => list.map((f) => feedbackItemHtml(f, fb.nameOf.get(f.user_id), fb.urlOf.get(f.image_path), isNew,
     (fb.replies || []).filter((r) => r.feedback_id === f.id), fb.nameOf)).join("");
-  const nAsg = pending.length + (log?.open.length || 0) + (tshares?.length || 0), nDev = tasks?.filter((t) => DEV_HOT.has(t.status)).length ?? 0;
+  const nAsg = pending.length + (log?.open.length || 0) + (tshares?.length || 0), nDev = tasks?.filter((t) => devShown(t) && DEV_HOT.has(t.status)).length ?? 0;
   navStat = { asg: { v: nAsg + fresh.length, hot: nAsg + fresh.length > 0 }, stu: { v: overview?.students.length ?? "-" },
     dev: { v: nDev, hot: nDev > 0 } };
   const box = (k, html) => `<div class="adm-pane" data-pane="${k}"${pane === k ? "" : " hidden"}>${html}</div>`;
